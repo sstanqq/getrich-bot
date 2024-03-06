@@ -5,6 +5,7 @@ COOKIES_PATH = 'cookies'
 
 # patterns
 PROXIES_PATTERN = '_proxy.zip'
+PROXIES_TXT_PATTERN = '_proxy.txt'
 USERAGENT_PATTERN = '_user_agent.txt'
 COOKIES_PATTERN = '_cookies.pkl'
 

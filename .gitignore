@@ -2,3 +2,5 @@ proxies
 user-agents
 cookies
 __pycache__
+*.json
+.env
