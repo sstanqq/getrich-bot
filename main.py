@@ -15,7 +15,7 @@ import config
 from time import sleep
 
 from utils import add_proxy, get_random_useragent, get_accs, load_user_data, \
-                  proxy_validator
+                  proxy_validator, save_cookies
 
 import proxies
 
@@ -38,8 +38,16 @@ def register_proxy(acc_name, ref):
     proxies.add_proxy(ref, PROXY_HOST, PROXY_PORT)
     add_proxy(acc_name, PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
 
-def register_cookies(acc_name):
-    pass
+def register_cookies(driver, acc_name):
+    try:
+        cookies = driver.get_cookies()
+        save_cookies(cookies, acc_name)
+    except:
+        print('[ERROR] Can\'t save cookies')
+        return False 
+
+    return True    
+
 
 # Create ness dirs
 def create_dirs(): 
@@ -67,18 +75,31 @@ def proxy_checker(driver, acc_name):
     
     ip_host = ip_div.find_element(By.TAG_NAME, 'span').text
 
-    print(f'{acc_proxy} : {ip_host}')
-
     if ip_host != acc_proxy:
         return False 
 
     return True
 
 
+def register_account(driver, acc_name):
+    wait = WebDriverWait(driver, 30)
+
+    reg_url = 'https://getrich.tv/register'
+    driver.get(reg_url)
+    text_inputs = wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'input-text__input')))
+
+    print(len(text_inputs))
+    text_inputs[2].send_keys(acc_name)
+
+    a = input('Сохранить cookies >>')
+
+    flag = register_cookies(driver, acc_name)
+    if flag:
+        print('[INFO] Cookies успешно сохранены')
 
 def main(acc_name):
     # Create ness dirs 
-    # create_dirs()
+    create_dirs()
     # cookies = get_accs(config.COOKIES_PATTERN, config.COOKIES_PATH)
     proxies = get_accs(config.PROXIES_PATTERN, config.PROXIES_PATH)
     user_agents = get_accs(config.USERAGENT_PATTERN, config.USERAGENTS_PATH)
@@ -110,14 +131,15 @@ def main(acc_name):
         driver.quit()
         return False
 
-    a = input('Продолжить ')
+    # Account registration
+    register_account(driver, acc_name)
 
     driver.quit()
 
 if __name__ == '__main__':
     # Init Firebase DB 
     ref = proxies.db_init() 
-    main('cyanistan')
-    # register_proxy('cyanistan', ref)
-    # get_random_useragent('cyanistan')
-    # main('cyanistan')
+
+    # register_proxy('acc_name', ref)
+
+    main('acc_name')

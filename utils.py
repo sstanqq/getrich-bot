@@ -3,6 +3,7 @@ import zipfile
 import random 
 import os
 import re
+import pickle
 
 def get_accs(pattern, dir):
     file_list = os.listdir(dir)
@@ -86,6 +87,12 @@ def add_proxy(acc_name, PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS):
         file.write(PROXY_HOST)
 
     print('[ INFO ] Proxy успешно добавлена\n')
+
+
+def save_cookies(cookies, acc_name):
+
+    with open(f'{config.COOKIES_PATH}/{acc_name}{config.COOKIES_PATTERN}', 'wb') as file:
+        pickle.dump(cookies, file)
 
 def proxy_validator(proxy_host, proxy_port):
     ipv4_pattern = r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
