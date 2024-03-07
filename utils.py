@@ -4,6 +4,7 @@ import random
 import os
 import re
 import pickle
+from faker import Faker
 
 def get_accs(pattern, dir):
     file_list = os.listdir(dir)
@@ -21,11 +22,23 @@ def get_random_useragent(acc_name):
     with open(f'{config.USERAGENTS_PATH}/{acc_name}{config.USERAGENT_PATTERN}', 'w') as file:
         file.write(random_user_agent.strip())
 
-def load_user_data(acc_name, path, pattern):
+def load_txt_data(acc_name, path, pattern):
     with open(f'{path}/{acc_name}{pattern}', 'r', encoding='utf-8') as file:
         content = file.read()
     
     return content.strip()
+
+def load_user_data(acc_name):
+    with open(f'{config.USERDATA_PATH}/{acc_name}{config.USERDATA_PATTERN}', 'rb') as file:
+        data = pickle.load(file)
+
+    return data[0], data[1]
+
+def save_user_data(acc_name, email, password):
+    data = [email, password]
+    with open(f'{config.USERDATA_PATH}/{acc_name}{config.USERDATA_PATTERN}', 'wb') as file:
+        pickle.dump(data, file)
+    return True 
 
 def add_proxy(acc_name, PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS):
     manifest_json = """
@@ -88,12 +101,6 @@ def add_proxy(acc_name, PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS):
 
     print('[ INFO ] Proxy успешно добавлена\n')
 
-
-def save_cookies(cookies, acc_name):
-
-    with open(f'{config.COOKIES_PATH}/{acc_name}{config.COOKIES_PATTERN}', 'wb') as file:
-        pickle.dump(cookies, file)
-
 def proxy_validator(proxy_host, proxy_port):
     ipv4_pattern = r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
 
@@ -103,3 +110,20 @@ def proxy_validator(proxy_host, proxy_port):
         return False 
     
     return True
+
+def email_validator(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if re.match(pattern, email):
+        return True 
+    return False
+
+def fake_user():
+    locals = ['cs_CZ', 'de_DE', 'dk_DK', 'en_US', 'es_ES', 'it_IT', 'hr_HR', 'hu_HU']
+
+    loc = random.choice(locals)
+    fake = Faker(loc)
+
+    random_name = fake.first_name_male()
+    random_lastname = fake.last_name_male()
+
+    return random_name, random_lastname

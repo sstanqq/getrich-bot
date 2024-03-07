@@ -9,13 +9,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
+import json
 
 import config
 
 from time import sleep
 
 from utils import add_proxy, get_random_useragent, get_accs, load_user_data, \
-                  proxy_validator, save_cookies
+                  proxy_validator, load_txt_data, email_validator, save_user_data
 
 import proxies
 
@@ -38,20 +39,11 @@ def register_proxy(acc_name, ref):
     proxies.add_proxy(ref, PROXY_HOST, PROXY_PORT)
     add_proxy(acc_name, PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
 
-def register_cookies(driver, acc_name):
-    try:
-        cookies = driver.get_cookies()
-        save_cookies(cookies, acc_name)
-    except:
-        print('[ERROR] Can\'t save cookies')
-        return False 
-
-    return True    
-
+    return True
 
 # Create ness dirs
 def create_dirs(): 
-    for dir in [config.PROXIES_PATH, config.COOKIES_PATH, config.USERAGENTS_PATH]:
+    for dir in [config.PROXIES_PATH, config.USERDATA_PATH, config.USERAGENTS_PATH]:
         if not os.path.exists(dir):
             os.makedirs(dir)
 
@@ -61,7 +53,7 @@ def proxy_checker(driver, acc_name):
     proxies_txt = get_accs(config.PROXIES_TXT_PATTERN, config.PROXIES_PATH)
 
     if acc_name in proxies_txt:
-        acc_proxy = load_user_data(acc_name, config.PROXIES_PATH, config.PROXIES_TXT_PATTERN)
+        acc_proxy = load_txt_data(acc_name, config.PROXIES_PATH, config.PROXIES_TXT_PATTERN)
     else:
         return False
 
@@ -80,27 +72,27 @@ def proxy_checker(driver, acc_name):
 
     return True
 
+def add_user_data(acc_name):
+    email = input('\nEmail >> ')
+    if not email_validator(email):
+        print('[ERROR] Incorrect email')
+        return False 
+    password = input('Password >> ')
+    save_user_data(acc_name, email.strip(), password.strip())
+    print('[INFO] User data successfully saved')
 
-def register_account(driver, acc_name):
-    wait = WebDriverWait(driver, 30)
+def register_account(acc_name, ref):
+    # Get New user-agent 
+    get_random_useragent(acc_name)
 
-    reg_url = 'https://getrich.tv/register'
-    driver.get(reg_url)
-    text_inputs = wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'input-text__input')))
+    # Register new proxy
+    flag = register_proxy(acc_name, ref)
+    if not flag:
+        print('[ERROR] Can\'t register a new proxy')
+        return False 
 
-    print(len(text_inputs))
-    text_inputs[2].send_keys(acc_name)
+    add_user_data(acc_name)
 
-    a = input('Сохранить cookies >>')
-
-    flag = register_cookies(driver, acc_name)
-    if flag:
-        print('[INFO] Cookies успешно сохранены')
-
-def main(acc_name):
-    # Create ness dirs 
-    create_dirs()
-    # cookies = get_accs(config.COOKIES_PATTERN, config.COOKIES_PATH)
     proxies = get_accs(config.PROXIES_PATTERN, config.PROXIES_PATH)
     user_agents = get_accs(config.USERAGENT_PATTERN, config.USERAGENTS_PATH)
 
@@ -111,7 +103,7 @@ def main(acc_name):
     options.add_argument("--disable-infobars")
 
     if acc_name in user_agents:
-        user_agent = load_user_data(acc_name, config.USERAGENTS_PATH, config.USERAGENT_PATTERN)
+        user_agent = load_txt_data(acc_name, config.USERAGENTS_PATH, config.USERAGENT_PATTERN)
         options.add_argument(f"user-agent={user_agent}")
         print(f'[ INFO ] {acc_name}\'s user-agent connected successfully')
     else:
@@ -131,15 +123,89 @@ def main(acc_name):
         driver.quit()
         return False
 
-    # Account registration
-    register_account(driver, acc_name)
+    wait = WebDriverWait(driver, 30)
+
+    reg_url = 'https://getrich.tv/register'
+    driver.get(reg_url)
+    text_inputs = wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'input-text__input')))
+
+    print(len(text_inputs))
+    text_inputs[2].send_keys(acc_name)
+
+    a = input('Продолжить(Enter) >>')
 
     driver.quit()
 
-if __name__ == '__main__':
-    # Init Firebase DB 
+def register_cookies(acc_name):
+    proxies = get_accs(config.PROXIES_PATTERN, config.PROXIES_PATH)
+    user_agents = get_accs(config.USERAGENT_PATTERN, config.USERAGENTS_PATH)
+
+    # Config Chrome 
+    options = Options()
+    options.add_argument(f"--window-size={config.WINDOW_WIDTH},{config.WINDOW_HEIGHT}")
+    options.add_argument('--log-level=3')
+    options.add_argument("--disable-infobars")
+
+    if acc_name in user_agents:
+        user_agent = load_txt_data(acc_name, config.USERAGENTS_PATH, config.USERAGENT_PATTERN)
+        options.add_argument(f"user-agent={user_agent}")
+        print(f'[ INFO ] {acc_name}\'s user-agent connected successfully')
+    else:
+        return False
+    if acc_name in proxies:
+        options.add_extension(f'{config.PROXIES_PATH}/{acc_name}{config.PROXIES_PATTERN}')
+        print(f'[ INFO ] {acc_name}\'s proxy connected successfully\n')
+    else:
+        return False
+
+    service = Service(config.CHROME_DRIVER_PATH)
+    driver = webdriver.Chrome(service=service, options=options )
+    driver.implicitly_wait(60)
+
+    flag = proxy_checker(driver, acc_name)
+    if not flag:
+        driver.quit()
+        return False
+
+
+    login_url = 'https://getrich.tv/login'
+    driver.get(login_url)
+
+    a = input('Продолжить(Enter) >>')
+
+    return True  
+
+
+
+def main():
+    # Create ness dirs 
+    create_dirs()
+
     ref = proxies.db_init() 
 
-    # register_proxy('acc_name', ref)
+    # Header 
+    header_message = '___________GET_RICH___________\n'
+    header_message += '| 1. Register a new account    |\n'
+    header_message += '| 2. Add user data             |\n'
+    header_message += '|                              |\n'
+    header_message += '| 3. Start a farm              |\n'
+    header_message += '|______________________________|'
+    print(header_message)
 
-    main('acc_name')
+    mode = input('\nEnter mode >> ')
+    if not mode.isdigit():
+        return False
+    if 1 > int(mode) > 3:
+        return False 
+    
+    acc_name = input('Acc name >> ')
+    if int(mode) == 1:
+        register_account(acc_name, ref)
+    elif int(mode) == 2:
+        add_user_data(acc_name)
+    elif int(mode) == 3:
+        pass
+    
+
+if __name__ == '__main__':
+    main()
