@@ -5,6 +5,7 @@ import os
 import re
 import pickle
 from faker import Faker
+import shutil
 
 def get_accs(pattern, dir):
     file_list = os.listdir(dir)
@@ -117,13 +118,22 @@ def email_validator(email):
         return True 
     return False
 
-def fake_user():
-    locals = ['cs_CZ', 'de_DE', 'dk_DK', 'en_US', 'es_ES', 'it_IT', 'hr_HR', 'hu_HU']
-
-    loc = random.choice(locals)
+def fake_user(loc):
+    if loc == 'mv_MV' or loc == 'ua_UA':
+        loc = 'lv_LV'
     fake = Faker(loc)
 
     random_name = fake.first_name_male()
     random_lastname = fake.last_name_male()
 
     return random_name, random_lastname
+
+def move_to_dir(acc_name, dir_src, dir_dist, pattern):
+    shutil.move(dir_src+'/'+acc_name+pattern, dir_dist+'/'+acc_name+pattern)
+
+# Перемещение всех файлов
+def move_all(dir_src, dir_dist):
+    file_list = os.listdir(dir_src)
+
+    for file in file_list:
+        shutil.move(dir_src+'/'+file, dir_dist+'/'+file)
